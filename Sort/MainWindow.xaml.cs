@@ -1,75 +1,37 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using System.Windows;
-using System.Windows.Input;
 
 namespace Sort
 {
     public partial class MainWindow : Window
     {
-        public string cdir = "";
+        public string? cdir;
 
-        public bool isGotFocus = false;
+        public MainWindow() => InitializeComponent();
 
-        public MainWindow()
+        private void SortButton_Click(object sender, RoutedEventArgs e) => InitMethod(SortByTypes);
+
+        private void outputFiles_Click(object sender, RoutedEventArgs e) => InitMethod(OutputFiles);
+
+        public void SortByTypes()
         {
-            InitializeComponent();
-        }
-
-        #region Select&output Directories
-        private void selectDir_GotFocus(object sender, RoutedEventArgs e)
-        {
-            isGotFocus = true;
-        }
-
-        private void selectDir_LostFocus(object sender, RoutedEventArgs e)
-        {
-            isGotFocus = false;
-        }
-
-        private void selectDir_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Key == Key.Enter && isGotFocus)
-            {
-                cdir = selectDir.Text;
-
-                cDir.Text = cdir;
-            }
-        }
-        #endregion
-
-        /// <summary>
-        /// Click magic
-        /// </summary>
-        private void SortButton_Click(object sender, RoutedEventArgs e)
-        {
-            //Create new List for extentions
             List<string> extentions = new List<string>();
 
-            //if cdir is exist
-            if (cdir.Length > 0)
+            if (cdir?.Length > 0)
             {
-                //get all files
                 var files = Directory.GetFiles(cdir);
 
-                //if files count more than zero lol
                 if (files.Length > 0)
                 {
-                    //add extentions
                     foreach (var file in files)
-                    {
-                        var format = new FileInfo(file);
+                        extentions.Add(new FileInfo(file).Extension);
 
-                        extentions.Add(format.Extension);
-                    }
-
-                    //create extention folder
                     foreach (var exten in extentions)
-                    {
                         Directory.CreateDirectory(cdir + "/" + exten);
-                    }
 
-                    //move current file to current folder
                     foreach (var file in files)
                     {
                         var fileInf = new FileInfo(file);
@@ -77,15 +39,45 @@ namespace Sort
                         foreach (var exten in extentions)
                         {
                             if (fileInf.Extension == exten)
-                            {
-                                string thisPath = cdir + "/" + exten + "/";
-
-                                fileInf.MoveTo(thisPath + fileInf.Name);
-                            }
+                                fileInf.MoveTo(cdir + "/" + exten + "/" + fileInf.Name);
                         }
                     }
                 }
             }
+            else ErrorMessage();
         }
+
+        public void OutputFiles()
+        {
+            List<string> allFiles = new List<string>();
+
+            if (cdir?.Length > 0)
+            {
+                foreach (var file in Directory.GetFiles(cdir))
+                    allFiles.Add(file);
+
+                var dirs = Directory.GetDirectories(cdir);
+
+                foreach (var dir in dirs)
+                {
+                    foreach (var file in Directory.GetFiles(dir))
+                        allFiles.Add(file);
+                }
+
+                foreach (var file in allFiles)
+                {
+                    var fileInf = new FileInfo(file);
+
+                    fileInf.MoveTo(cdir + "/" + fileInf.Name);
+                }
+            }
+            else ErrorMessage();
+        }
+
+        public async void InitMethod(Action action) => await Task.Run(action);
+
+        public void ErrorMessage() => MessageBox.Show("Put the path to sort");
+
+        private void selectDir_TextChanged(object sender, System.Windows.Controls.TextChangedEventArgs e) => cdir = selectDir.Text;
     }
 }
